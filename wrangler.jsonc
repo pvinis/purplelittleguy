@@ -18,7 +18,7 @@
       "migrations_dir": "migrations"
     }
   ],
-  "observability": { "enabled": true }
-  // Custom domain, once purplelittleguy.com is on Cloudflare:
-  // "routes": [{ "pattern": "purplelittleguy.com", "custom_domain": true }]
+  "observability": { "enabled": true },
+  // Deploying attaches the domain and creates its DNS record and certificate.
+  "routes": [{ "pattern": "purplelittleguy.com", "custom_domain": true }]
 }

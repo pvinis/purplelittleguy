@@ -70,7 +70,7 @@ The admin token for local development is `local-admin-token`.
    bunx wrangler secret put ADMIN_TOKEN   # a long random string, for /admin
    bunx wrangler secret put IP_SALT       # another long random string
    ```
-4. Deploy: `bun run deploy`. It builds the page, applies the database migrations, and deploys the Worker.
-5. Custom domain: once `purplelittleguy.com` uses Cloudflare's nameservers, uncomment the `routes` entry in `wrangler.jsonc` and deploy again.
+4. Deploy: `bun run deploy`. It builds the page, applies the database migrations, deploys the Worker, and attaches `purplelittleguy.com` (the `routes` entry in `wrangler.jsonc`). Cloudflare creates the domain's DNS record and certificate itself, so the zone only needs to be active in the same Cloudflare account, with no other record on the bare domain.
+5. `www`: add a proxied `AAAA` record for `www` pointing at `100::`, then a redirect rule from `www.purplelittleguy.com/*` to `https://purplelittleguy.com/${1}` (Rules > Templates > "Redirect from WWW to root").
 
 Static files don't count as Worker requests, but the API does. On the free plan that's 100,000 requests a day, and each open tab makes about 80 per hour while visible.
