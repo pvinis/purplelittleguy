@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "purplelittleguy",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    // Only these paths wake the Worker. Everything else is served as a plain file, which is free.
+    "run_worker_first": ["/api/*", "/g/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "purplelittleguy",
+      // Replace with the id from `bunx wrangler d1 create purplelittleguy`.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": { "enabled": true }
+  // Custom domain, once purplelittleguy.com is on Cloudflare:
+  // "routes": [{ "pattern": "purplelittleguy.com", "custom_domain": true }]
+}

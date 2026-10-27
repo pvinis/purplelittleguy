@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex">
+	<title>purple little guy · admin</title>
+	<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+	<link rel="stylesheet" href="/styles.css">
+	<link rel="stylesheet" href="/admin.css">
+	<script type="module" src="/assets/admin.js"></script>
+</head>
+<body class="admin">
+	<header class="admin-head">
+		<h1>street admin</h1>
+		<form id="login" class="admin-row">
+			<input id="token" type="password" placeholder="admin token" autocomplete="current-password" aria-label="Admin token">
+			<button class="btn small primary" type="submit">Load</button>
+		</form>
+	</header>
+	<section class="admin-row" id="controls" hidden>
+		<label><input type="checkbox" id="postingOff"> posting off</label>
+		<label><input type="checkbox" id="approvalRequired"> new guys need approval</label>
+		<select id="filter" aria-label="Show">
+			<option value="">all guys</option>
+			<option value="pending">waiting for approval</option>
+			<option value="visible">visible</option>
+			<option value="hidden">hidden</option>
+		</select>
+		<button class="btn small" id="recount" type="button">Recount</button>
+		<span class="admin-stat" id="stat"></span>
+	</section>
+	<p class="admin-msg" id="msg" role="status"></p>
+	<ul class="admin-grid" id="grid"></ul>
+	<button class="btn small" id="more" type="button" hidden>Load older</button>
+</body>
+</html>

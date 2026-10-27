@@ -1,0 +1,13 @@
+.admin { padding: 24px max(16px, env(safe-area-inset-left)); height: auto; }
+.admin h1 { font-size: 32px; }
+.admin-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.admin-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-bottom: 12px; font-size: 14px; }
+.admin-row input[type="password"], .admin-row select { font: 14px var(--f-body); padding: 6px 10px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--fg); }
+.admin-stat, .admin-msg { font: 13px var(--f-mono); color: var(--muted); }
+.admin-grid { list-style: none; margin: 0 0 16px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.admin-grid li { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); font-size: 12px; }
+.admin-grid li[data-status="hidden"] { opacity: 0.5; }
+.admin-grid li[data-status="pending"] { border-color: var(--accent); }
+.admin-grid canvas { width: 72px; height: 72px; image-rendering: pixelated; justify-self: center; filter: var(--sprite-filter); }
+.admin-grid .meta { font-family: var(--f-mono); color: var(--muted); }
+.admin-grid .row .btn { padding: 4px 9px; font-size: 12px; }

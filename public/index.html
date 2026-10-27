@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<title>purple little guy</title>
+	<meta name="description" content="A little purple guy lives here. Come say hi, and leave a guy of your own.">
+	<meta property="og:type" content="website">
+	<meta property="og:site_name" content="purple little guy">
+	<meta property="og:title" content="purple little guy">
+	<meta property="og:description" content="A little purple guy lives here. Come say hi, and leave a guy of your own.">
+	<meta property="og:image" content="https://purplelittleguy.com/og.png">
+	<meta property="og:url" content="https://purplelittleguy.com/">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="theme-color" content="#E8EEE3" media="(prefers-color-scheme: light)">
+	<meta name="theme-color" content="#15111C" media="(prefers-color-scheme: dark)">
+	<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<!-- fonts load without blocking, so the guy can start walking even on a slow connection -->
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono&family=Figtree:wght@400;500;600&family=Gaegu:wght@400;700&family=Gluten:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
+	<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono&family=Figtree:wght@400;500;600&family=Gaegu:wght@400;700&family=Gluten:wght@500;600;700&display=swap"></noscript>
+	<link rel="stylesheet" href="/styles.css">
+	<script type="module" src="/assets/main.js"></script>
+</head>
+<body>
+	<main class="street" id="street">
+		<header class="sign">
+			<h1>purple little guy</h1>
+			<p class="pop" id="pop" aria-live="polite">&nbsp;</p>
+		</header>
+		<button class="btn primary leave" id="leave" type="button">+ Leave a guy</button>
+
+		<div class="cloud c1" aria-hidden="true"></div>
+		<div class="cloud c2" aria-hidden="true"></div>
+		<div class="houses" id="houses"></div>
+		<div class="ground" aria-hidden="true"></div>
+		<a class="source" href="https://github.com/pvinis/purplelittleguy">source</a>
+
+		<div class="sheet" id="sheet" role="dialog" aria-labelledby="sheetTitle" hidden>
+			<div class="sheet-part" id="sheetDraw">
+				<div class="sheet-head">
+					<h2 id="sheetTitle">Leave a guy</h2>
+					<button type="button" class="x" data-a="close" aria-label="Close">×</button>
+				</div>
+				<p class="hint">Draw one, or press Randomize until you like him.</p>
+				<div class="pix" id="pix" role="img" aria-label="Your guy, on a 12 by 12 grid"></div>
+				<div class="swatches" id="swatches" role="group" aria-label="Colors"></div>
+				<div class="row">
+					<button type="button" class="btn small" data-a="random">Randomize</button>
+					<button type="button" class="btn small" data-a="back" disabled>Back</button>
+					<button type="button" class="btn small" data-a="undo" disabled>Undo</button>
+					<button type="button" class="btn small" data-a="mirror" aria-pressed="true">Mirror</button>
+					<button type="button" class="btn small" data-a="clear">Clear</button>
+				</div>
+				<button type="button" class="btn primary wide" data-a="add">Add him to the street</button>
+				<p class="msg" id="sheetMsg" role="status"></p>
+			</div>
+			<div class="sheet-part" id="sheetDone" hidden>
+				<div class="sheet-head">
+					<h2 id="doneTitle">He moved in!</h2>
+					<button type="button" class="x" data-a="close" aria-label="Close">×</button>
+				</div>
+				<p class="hint">Here's his link, if you want to show someone.</p>
+				<div class="link-row">
+					<input id="shareLink" readonly aria-label="Link to your guy">
+					<button type="button" class="btn small" data-a="copy">Copy</button>
+				</div>
+				<div class="row">
+					<button type="button" class="btn small" data-a="another">Leave another</button>
+					<button type="button" class="btn small primary" data-a="close">Done</button>
+				</div>
+			</div>
+		</div>
+
+		<p class="toast" id="toast" role="status" hidden></p>
+		<noscript><p class="toast">The purple guy needs JavaScript to walk around.</p></noscript>
+	</main>
+</body>
+</html>

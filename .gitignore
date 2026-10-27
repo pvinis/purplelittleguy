@@ -1,0 +1,5 @@
+node_modules/
+public/assets/
+.wrangler/
+.dev.vars
+.DS_Store
