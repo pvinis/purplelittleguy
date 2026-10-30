@@ -1,0 +1,8 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // A tiny Worker of its own, because the main one never sees requests for static files.
+  "name": "purplelittleguy-www",
+  "main": "src/worker/www.ts",
+  "compatibility_date": "2026-09-01",
+  "routes": [{ "pattern": "www.purplelittleguy.com", "custom_domain": true }]
+}

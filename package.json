@@ -5,7 +5,7 @@
   "scripts": {
     "build": "bun build src/client/main.ts src/client/admin.ts --outdir public/assets --target browser --minify",
     "dev": "bun run build && wrangler d1 migrations apply purplelittleguy --local && wrangler dev",
-    "deploy": "bun run build && wrangler d1 migrations apply purplelittleguy --remote && wrangler deploy",
+    "deploy": "bun run build && wrangler d1 migrations apply purplelittleguy --remote && wrangler deploy && wrangler deploy -c wrangler.www.jsonc",
     "test": "bun test",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.worker.json",
     "og": "bun run scripts/og.ts",
