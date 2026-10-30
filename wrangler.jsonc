@@ -14,7 +14,7 @@
       "binding": "DB",
       "database_name": "purplelittleguy",
       // Replace with the id from `bunx wrangler d1 create purplelittleguy`.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "3d1c49a3-33e9-4db6-bce1-d9b8217473b3",
       "migrations_dir": "migrations"
     }
   ],
