@@ -1,4 +1,5 @@
-export type Guy = { id: number; pixels: string; createdAt: number; source: "drawn" | "random" };
+export type Guy = { id: number; pixels: string; createdAt: number; source: "drawn" | "random"; note: string | null; by: string | null };
+export type Words = { note: string; by: string };
 export type Street = { total: number; maxId: number; newest: number[]; guys: Guy[] };
 
 export class ApiError extends Error {
@@ -29,8 +30,8 @@ export const api = {
 	after: (id: number) => request<{ guys: Guy[] }>(`/api/guys?after=${id}`).then((r) => r.guys),
 	byIds: (ids: number[]) => (ids.length ? request<{ guys: Guy[] }>(`/api/guys?ids=${ids.join(",")}`).then((r) => r.guys) : Promise.resolve([])),
 	one: (id: number) => request<{ guy: Guy }>(`/api/guys/${id}`).then((r) => r.guy),
-	post: (pixels: string, source: "drawn" | "random") =>
-		request<{ guy: Guy }>("/api/guys", { method: "POST", body: JSON.stringify({ pixels, source }) }).then((r) => r.guy),
+	post: (pixels: string, source: "drawn" | "random", words: Words) =>
+		request<{ guy: Guy }>("/api/guys", { method: "POST", body: JSON.stringify({ pixels, source, ...words }) }).then((r) => r.guy),
 };
 
 // The ids of guys you left, so "yours" survives a reload. Browser storage can be missing; that's fine.

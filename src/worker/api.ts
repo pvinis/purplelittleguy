@@ -1,3 +1,4 @@
+import { TEXT_MAX, cleanText } from "../shared/note";
 import { canonical, checkPixels } from "../shared/pixels";
 
 export interface Env {
@@ -8,9 +9,20 @@ export interface Env {
 }
 
 export type Status = "visible" | "pending" | "hidden";
-export type PublicGuy = { id: number; pixels: string; createdAt: number; source: "drawn" | "random" };
+export type PublicGuy = { id: number; pixels: string; createdAt: number; source: "drawn" | "random"; note: string | null; by: string | null };
 
-type Row = { id: number; pixels: string; created_at: number; source: "drawn" | "random"; status: Status; ip_hash: string };
+type Row = {
+	id: number;
+	pixels: string;
+	created_at: number;
+	source: "drawn" | "random";
+	status: Status;
+	ip_hash: string;
+	note: string | null;
+	made_by: string | null;
+};
+// Only the admin ever sees where a guy came from.
+type AdminRow = Row & { ip: string | null; country: string | null; region: string | null; city: string | null; network: string | null };
 
 export const LIMITS = {
 	street: { newest: 12, random: 24, perPoster: 2 },
@@ -19,6 +31,7 @@ export const LIMITS = {
 	burst: { count: 6, windowMs: 10 * 60_000 },
 	daily: { count: 50, windowMs: 24 * 60 * 60_000 },
 	streetCacheMs: 60_000,
+	keepIpMs: 30 * 24 * 60 * 60_000,
 };
 
 const MESSAGES = {
@@ -28,15 +41,18 @@ const MESSAGES = {
 	burst: "That's a lot of guys! Take a short break and try again in a few minutes.",
 	daily: "That's all the guys for today. Come back tomorrow.",
 	closed: "The street is closed to new guys right now. Try again later.",
+	"too-long": "That's a bit long. Keep it to a few words?",
+	link: "No links, please. Just a few words.",
 };
 
 const json = (data: unknown, status = 200, headers: HeadersInit = {}) =>
 	new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", ...headers } });
 const fail = (status: number, error: string, message: string, extra: object = {}) => json({ error, message, ...extra }, status);
 
-const toPublic = (r: Row): PublicGuy => ({ id: r.id, pixels: r.pixels, createdAt: r.created_at, source: r.source });
+const toPublic = (r: Row): PublicGuy => ({ id: r.id, pixels: r.pixels, createdAt: r.created_at, source: r.source, note: r.note, by: r.made_by });
 
-const COLUMNS = "id, pixels, created_at, source, status, ip_hash";
+const COLUMNS = "id, pixels, created_at, source, status, ip_hash, note, made_by";
+const ADMIN_COLUMNS = `${COLUMNS}, ip, country, region, city, network`;
 
 export async function getSettings(db: D1Database) {
 	const { results } = await db.prepare("SELECT key, value FROM settings").all<{ key: string; value: string }>();
@@ -113,7 +129,7 @@ async function postGuy(req: Request, env: Env): Promise<Response> {
 	const settings = await getSettings(db);
 	if (settings.postingOff) return fail(503, "closed", MESSAGES.closed);
 
-	let body: { pixels?: unknown; source?: unknown };
+	let body: { pixels?: unknown; source?: unknown; note?: unknown; by?: unknown };
 	try {
 		body = await req.json();
 	} catch {
@@ -123,9 +139,14 @@ async function postGuy(req: Request, env: Env): Promise<Response> {
 	if (!check.ok) return fail(400, check.problem, MESSAGES[check.problem]);
 	const pixels = check.pixels;
 	const source = body.source === "random" ? "random" : "drawn";
+	const note = cleanText(body.note, TEXT_MAX.note);
+	const by = cleanText(body.by, TEXT_MAX.by);
+	if (!note.ok) return fail(400, note.problem, MESSAGES[note.problem]);
+	if (!by.ok) return fail(400, by.problem, MESSAGES[by.problem]);
 
-	const ip = req.headers.get("cf-connecting-ip") ?? "local";
-	const ipHash = await hashIp(ip, env.IP_SALT ?? "dev-salt");
+	const ip = req.headers.get("cf-connecting-ip");
+	const ipHash = await hashIp(ip ?? "local", env.IP_SALT ?? "dev-salt");
+	const cf = (req as { cf?: IncomingRequestCfProperties }).cf;
 	const now = Date.now();
 	const { burst, daily } = LIMITS;
 	const counts = await db
@@ -143,12 +164,20 @@ async function postGuy(req: Request, env: Env): Promise<Response> {
 	const status: Status = settings.approvalRequired ? "pending" : "visible";
 	const [inserted] = await db.batch<Row>([
 		db
-			.prepare(`INSERT INTO guys (pixels, canon, source, status, ip_hash, created_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING ${COLUMNS}`)
-			.bind(pixels, canon, source, status, ipHash, now),
+			.prepare(
+				`INSERT INTO guys (pixels, canon, source, status, ip_hash, created_at, note, made_by, ip, country, region, city, network)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING ${COLUMNS}`,
+			)
+			.bind(pixels, canon, source, status, ipHash, now, note.text, by.text, ip, cf?.country ?? null, cf?.region ?? null, cf?.city ?? null, cf?.asOrganization ?? null),
 		db.prepare("UPDATE settings SET value = CAST(value AS INTEGER) + 1 WHERE key = 'visible_count' AND ? = 'visible'").bind(status),
 	]);
 	const row = inserted!.results[0]!;
 	return json({ guy: toPublic(row) }, 201);
+}
+
+// Raw IPs are only kept for a while, for blocking abuse. Runs from the daily cron.
+export async function forgetOldIps(db: D1Database, now = Date.now()) {
+	await db.prepare("UPDATE guys SET ip = NULL WHERE ip IS NOT NULL AND created_at < ?").bind(now - LIMITS.keepIpMs).run();
 }
 
 // ---- admin ----
@@ -185,14 +214,26 @@ async function admin(req: Request, env: Env, path: string, url: URL): Promise<Re
 		const before = Number(url.searchParams.get("before")) || Number.MAX_SAFE_INTEGER;
 		const status = url.searchParams.get("status");
 		const filter = status === "visible" || status === "pending" || status === "hidden" ? "AND status = ?" : "";
-		const stmt = db.prepare(`SELECT ${COLUMNS} FROM guys WHERE id < ? ${filter} ORDER BY id DESC LIMIT 100`);
-		const { results } = await (filter ? stmt.bind(before, status) : stmt.bind(before)).all<Row>();
-		return json({ settings: await getSettings(db), guys: results.map((r) => ({ ...toPublic(r), status: r.status, poster: r.ip_hash })) });
+		const stmt = db.prepare(`SELECT ${ADMIN_COLUMNS} FROM guys WHERE id < ? ${filter} ORDER BY id DESC LIMIT 100`);
+		const { results } = await (filter ? stmt.bind(before, status) : stmt.bind(before)).all<AdminRow>();
+		const guys = results.map((r) => ({
+			...toPublic(r),
+			status: r.status,
+			poster: r.ip_hash,
+			ip: r.ip,
+			place: { country: r.country, region: r.region, city: r.city, network: r.network },
+		}));
+		return json({ settings: await getSettings(db), guys });
 	}
 
 	const one = path.match(/^\/api\/admin\/guys\/(\d+)$/);
 	if (one && req.method === "POST") {
-		const { status } = await req.json<{ status?: Status }>();
+		const { status, clearText } = await req.json<{ status?: Status; clearText?: boolean }>();
+		if (clearText) {
+			const { meta } = await db.prepare("UPDATE guys SET note = NULL, made_by = NULL WHERE id = ?").bind(Number(one[1])).run();
+			clearStreetCache();
+			return json({ changed: meta.changes });
+		}
 		if (status !== "visible" && status !== "hidden" && status !== "pending") return fail(400, "invalid", "Status must be visible, pending or hidden.");
 		const changed = await setStatus(db, "id = ?", [Number(one[1])], status);
 		return json({ changed });

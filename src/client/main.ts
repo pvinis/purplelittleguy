@@ -1,6 +1,6 @@
-import { FOUNDING_FRIENDS } from "../shared/templates";
+import { FOUNDING_FRIENDS, foundingWanted } from "../shared/templates";
 import { type Guy, api, guyNumber, mine, timeAgo } from "./api";
-import { Crowd, type Resident } from "./crowd";
+import { Crowd, type Resident, describe } from "./crowd";
 import { Editor } from "./editor";
 import { Host } from "./guy";
 import { drawHouses } from "./houses";
@@ -15,9 +15,20 @@ const crowd = new Crowd(stage, host);
 const pool = new Map<string, Resident>();
 let maxId = 0;
 let total = 0;
+let streetUp = false;
 
 const capacity = () => Math.max(6, Math.min(24, Math.floor(stage.clientWidth / 52)));
-const resident = (g: Guy, extra: Partial<Resident> = {}): Resident => ({ key: `g${g.id}`, id: g.id, pixels: g.pixels, createdAt: g.createdAt, ...extra });
+const resident = (g: Guy, extra: Partial<Resident> = {}): Resident => ({
+	key: `g${g.id}`,
+	id: g.id,
+	pixels: g.pixels,
+	createdAt: g.createdAt,
+	note: g.note,
+	by: g.by,
+	...extra,
+});
+// Founding friends make way as visitors move in. If the street can't be reached, they all stay.
+const foundersWanted = () => (streetUp ? foundingWanted(total) : FOUNDING_FRIENDS.length);
 
 function setPopulation() {
 	$("#pop").textContent = total === 1 ? "1 guy lives here" : `${total.toLocaleString("en-US")} guys live here`;
@@ -32,17 +43,17 @@ function toast(text: string, ms = 5000) {
 	toastTimer = window.setTimeout(() => (el.hidden = true), ms);
 }
 
-// A new guy arrives: make room if the street is full, drop him in, and send the big guy over.
+// A new guy arrives: make room (a founding friend leaves first), drop him in, and send the big guy over.
 function arrive(r: Resident, greeting = ["welcome!", "hi new guy!", "oh! a new guy", "welcome to the street"]) {
 	pool.set(r.key, r);
-	if (crowd.count >= capacity()) crowd.sendOneAway();
+	if (crowd.count >= capacity() || crowd.friends > foundersWanted()) crowd.sendOneAway();
 	const w = crowd.add(r, "drop", 40 + Math.random() * Math.max(0, stage.clientWidth - 128));
 	crowd.greetWhenLanded(w, greeting);
 	return w;
 }
 
-const editor = new Editor($("#sheet"), async (pixels, source) => {
-	const guy = await api.post(pixels, source);
+const editor = new Editor($("#sheet"), async (pixels, source, words) => {
+	const guy = await api.post(pixels, source, words);
 	mine.add(guy.id);
 	total++;
 	setPopulation();
@@ -62,6 +73,7 @@ async function start() {
 	]);
 
 	if (street) {
+		streetUp = true;
 		maxId = street.maxId;
 		total = street.total;
 		setPopulation();
@@ -90,15 +102,20 @@ async function start() {
 	const others = shuffle([...pool.values()].filter((r) => !placed.has(r.key) && r.id !== focusId));
 	for (const r of others.slice(0, Math.max(0, cap - placed.size - (focus ? 1 : 0)))) place(r);
 
-	// until enough people have moved in, the founding friends fill the street
-	FOUNDING_FRIENDS.forEach((pixels, i) => {
-		if (placed.size + (focus ? 1 : 0) < cap) place({ key: `f${i}`, pixels, friend: true });
-	});
+	// until enough people have moved in, a few founding friends fill the street
+	let founders = foundersWanted();
+	for (const i of shuffle(FOUNDING_FRIENDS.map((_, i) => i))) {
+		if (founders-- <= 0 || placed.size + (focus ? 1 : 0) >= cap) break;
+		place({ key: `f${i}`, pixels: FOUNDING_FRIENDS[i]!, friend: true });
+	}
 
 	if (focus) {
 		const r = resident(focus, { focus: true, mine: mineIds.has(focus.id) });
-		setTimeout(() => arrive(r, ["oh! it's you", `hi ${guyNumber(focus.id)}!`, "there you are"]), 1200);
-		toast(`This is guy ${guyNumber(focus.id)}. He moved in ${timeAgo(focus.createdAt)}.`, 7000);
+		setTimeout(() => {
+			const w = arrive(r, ["oh! it's you", `hi ${guyNumber(focus.id)}!`, "there you are"]);
+			if (r.note) crowd.showInfo(w, describe(r), 8000);
+		}, 1200);
+		toast(`This is guy ${guyNumber(focus.id)}${focus.by ? `, by ${focus.by}` : ""}. He moved in ${timeAgo(focus.createdAt)}.`, 7000);
 	} else if (focusId) {
 		toast(`No guy lives at ${guyNumber(focusId)} yet. Want to leave one?`, 7000);
 	}

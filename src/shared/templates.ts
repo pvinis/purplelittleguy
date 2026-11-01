@@ -12,4 +12,11 @@ export const FOUNDING_FRIENDS: string[] = [
 	rows(["............", "............", "............", "............", "............", "....pppp....", "...pppppp...", "...pkppkp...", "...pppppp...", "...pppppp...", "....d..d....", "............"]),
 	rows(["............", "....llll....", "...llllll...", "..llllllll..", "..llkllkll..", "..llllllll..", "..lllddlll..", "..lllddlll..", "..llllllll..", "..llllllll..", "..ll.ll.ll..", "............"]),
 	rows(["............", "....pppp....", "d..pppppp..d", "d.pppppppp.d", ".dppkppkppd.", "..pppppppp..", "..ppkkkkpp..", "..pppppppp..", "..pppppppp..", "...pppppp...", "...dd..dd...", "............"]),
+	rows(["............", "..d......d..", "..pp....pp..", "..pppppppp..", ".pppppppppp.", ".ppkppppkpp.", ".pppppppppp.", ".lpppkkpppl.", ".pppppppppp.", "..pppppppp..", "..dd....dd..", "............"]),
+	rows(["............", "............", "....llll....", "...llllll...", "..llllllll..", "..lddllddl..", "pllllllllllp", "..llllllll..", "..lllpplll..", "...llllll...", "...pp..pp...", "............"]),
 ];
+
+// The street always has at least this many guys. Founding friends fill the gap,
+// one fewer for every visitor's guy, until there are enough of those.
+export const STREET_MINIMUM = 10;
+export const foundingWanted = (visitorGuys: number) => Math.max(0, Math.min(FOUNDING_FRIENDS.length, STREET_MINIMUM - visitorGuys));

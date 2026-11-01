@@ -1,4 +1,4 @@
-import { type Env, getVisibleGuy, handleApi } from "./api";
+import { type Env, forgetOldIps, getVisibleGuy, handleApi } from "./api";
 import { renderCard } from "./png";
 
 const SITE = "purplelittleguy.com";
@@ -8,8 +8,11 @@ async function guyPage(req: Request, env: Env, url: URL, id: number): Promise<Re
 	const page = await env.ASSETS.fetch(new Request(new URL("/", url), req));
 	const guy = await getVisibleGuy(env.DB, id);
 	if (!guy) return page;
-	const title = `Guy #${id.toLocaleString("en-US")} lives on ${SITE}`;
-	const description = "A little purple guy, drawn by a visitor. Come say hi, and leave one of your own.";
+	const number = `Guy #${id.toLocaleString("en-US")}`;
+	const title = guy.by ? `${number} by ${guy.by} · ${SITE}` : `${number} lives on ${SITE}`;
+	const description = guy.note
+		? `“${guy.note}”${guy.by ? ` by ${guy.by}` : ""}`
+		: `A little purple guy, made by ${guy.by ?? "a visitor"}. Come say hi, and leave one of your own.`;
 	const image = new URL(`/g/${id}.png`, url).toString();
 	const meta: Record<string, string> = {
 		"og:title": title,
@@ -63,5 +66,8 @@ export default {
 			console.error(err);
 			return Response.json({ error: "server", message: "Something went wrong on our side. Try again in a bit." }, { status: 500 });
 		}
+	},
+	async scheduled(_event, env, ctx) {
+		ctx.waitUntil(forgetOldIps(env.DB));
 	},
 } satisfies ExportedHandler<Env>;

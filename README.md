@@ -1,6 +1,6 @@
 # purple little guy
 
-A little purple guy lives at [purplelittleguy.com](https://purplelittleguy.com). He follows your cursor, trips sometimes, naps when you leave him alone, and says hi to the neighbors: tiny 12×12 pixel guys that visitors draw (or randomize) and leave on his street.
+A little purple guy lives at [purplelittleguy.com](https://purplelittleguy.com). He follows your cursor, trips sometimes, naps when you leave him alone, and says hi to the neighbors: tiny 12×12 pixel guys that visitors draw (or randomize) and leave on his street, with an optional note and who made them.
 
 ## How it works
 
@@ -11,7 +11,7 @@ A little purple guy lives at [purplelittleguy.com](https://purplelittleguy.com).
 
 ### What the street shows
 
-The street shows about one guy per 52px of screen width, up to 24: your own guys first (their ids are kept in the browser), the newest few dropping in again with a welcome, then random older ones. The Worker builds that selection about once a minute and keeps a running count, so a visit never scans the whole table. Every 45 seconds the page asks for guys newer than the last one it saw, but only while the tab is visible, and every 20 seconds someone walks off and someone else walks on.
+The street shows about one guy per 52px of screen width, up to 24: your own guys first (their ids are kept in the browser), the newest few dropping in again with a welcome, then random older ones. There are always at least 10: until 10 visitors' guys live there, founding friends (hand-drawn, in `src/shared/templates.ts`) fill the gap, and one walks off each time a new guy moves in. Hide some guys and they come back. The Worker builds that selection about once a minute and keeps a running count, so a visit never scans the whole table. Every 45 seconds the page asks for guys newer than the last one it saw, but only while the tab is visible, and every 20 seconds someone walks off and someone else walks on.
 
 ### Sharing
 
@@ -25,7 +25,7 @@ Every guy has a page at `/g/<number>` with a preview image at `/g/<number>.png`,
 | `GET /api/guys?after=<id>` | Visible guys newer than `id` (for polling) |
 | `GET /api/guys?ids=1,2,3` | Specific guys, whatever their status (your own guys) |
 | `GET /api/guys/<id>` | One visible guy |
-| `POST /api/guys` | `{ pixels, source }` leaves a new guy |
+| `POST /api/guys` | `{ pixels, source, note?, by? }` leaves a new guy |
 
 ## Keeping it nice
 
@@ -35,11 +35,18 @@ Anonymous drawing walls attract rude drawings, so there's a small admin page at 
 - **Posting off** closes the street to new guys.
 - **New guys need approval** holds new guys back until you approve them. Posters can't tell: they still see their own guy.
 
+- **Remove note** keeps a guy but drops his note and "by".
+
 The API also has some limits built in:
 - A guy needs at least 8 filled squares.
+- A note is up to 60 characters and "by" up to 24. Neither can have links, and invisible characters are stripped.
 - An exact twin of a guy who already lives there is rejected, and his mirror image counts as a twin.
 - Each poster can leave 6 guys per 10 minutes and 50 per day.
 - The street shows at most 2 guys from the same poster.
+
+### Where guys come from
+
+For each new guy, the admin page shows where it was posted from: city, region, country and network, as Cloudflare reports them, plus the raw IP address. A daily cron (`triggers` in `wrangler.jsonc`) clears IPs older than 30 days and keeps the rest. None of this is ever in the public API, and the sheet tells posters about it.
 
 ## Develop
 

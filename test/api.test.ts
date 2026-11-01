@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { generateGuy } from "../src/shared/generate";
 import { canonical, mirror } from "../src/shared/pixels";
-import { type Env, LIMITS, clearStreetCache, handleApi } from "../src/worker/api";
+import { type Env, LIMITS, clearStreetCache, forgetOldIps, handleApi } from "../src/worker/api";
 import { createD1 } from "../scripts/d1-sqlite";
 
 let env: Env;
@@ -11,13 +11,15 @@ beforeEach(() => {
 	clearStreetCache();
 });
 
-async function call(method: string, path: string, body?: unknown, headers: Record<string, string> = {}) {
+async function call(method: string, path: string, body?: unknown, headers: Record<string, string> = {}, cf?: object) {
 	const url = new URL(`https://street.test${path}`);
 	const req = new Request(url, {
 		method,
 		body: body === undefined ? undefined : JSON.stringify(body),
 		headers: { "content-type": "application/json", "cf-connecting-ip": "1.2.3.4", ...headers },
 	});
+	// what Cloudflare tells the Worker about where a request came from
+	if (cf) Object.defineProperty(req, "cf", { value: cf });
 	const res = await handleApi(req, env, url);
 	return { status: res.status, body: (await res.json()) as Record<string, any> };
 }
@@ -193,5 +195,69 @@ describe("admin", () => {
 		for (let i = 0; i < 3; i++) await post(guys[i]!, ipFor(i));
 		const res = await admin("POST", "/api/admin/recount");
 		expect(res.body.settings.visibleCount).toBe(3);
+	});
+});
+
+describe("notes", () => {
+	const leave = (body: object, ip = "1.2.3.4", cf?: object) => call("POST", "/api/guys", { pixels: guys[0], source: "drawn", ...body }, { "cf-connecting-ip": ip }, cf);
+
+	test("a guy can carry a note and who made him, tidied up", async () => {
+		const res = await leave({ note: "  hi   from\n athens!\u202e ", by: "pavlos 👩‍🎨" });
+		expect(res.status).toBe(201);
+		expect(res.body.guy).toMatchObject({ note: "hi from athens!", by: "pavlos 👩‍🎨" });
+		expect((await street()).body.guys[0]).toMatchObject({ note: "hi from athens!", by: "pavlos 👩‍🎨" });
+		expect((await call("GET", "/api/guys/1")).body.guy.note).toBe("hi from athens!");
+	});
+
+	test("both are optional, and blank counts as none", async () => {
+		const res = await leave({ note: "   ", by: "" });
+		expect(res.body.guy).toMatchObject({ note: null, by: null });
+	});
+
+	test("no links, nothing too long, nothing that isn't text", async () => {
+		expect((await leave({ note: "visit https://spam.example" })).body.error).toBe("link");
+		expect((await leave({ by: "cheap-pills.shop" })).body.error).toBe("link");
+		expect((await leave({ note: "x".repeat(61) })).body.error).toBe("too-long");
+		expect((await leave({ by: "x".repeat(25) })).body.error).toBe("too-long");
+		expect((await leave({ note: 42 })).body.error).toBe("invalid");
+		expect((await leave({ note: "x".repeat(60), by: "x".repeat(24) })).status).toBe(201);
+	});
+
+	test("an admin can remove the note and keep the guy", async () => {
+		await leave({ note: "something rude", by: "someone" });
+		expect((await admin("POST", "/api/admin/guys/1", { clearText: true })).body.changed).toBe(1);
+		const s = await street();
+		expect(s.body.total).toBe(1);
+		expect(s.body.guys[0]).toMatchObject({ id: 1, note: null, by: null });
+	});
+});
+
+describe("where guys come from", () => {
+	const athens = { country: "GR", region: "Attica", city: "Athens", asOrganization: "Cosmote" };
+
+	test("only the admin sees the IP and location", async () => {
+		await call("POST", "/api/guys", { pixels: guys[0], source: "random" }, { "cf-connecting-ip": "5.6.7.8" }, athens);
+		const listed = (await admin("GET", "/api/admin/guys")).body.guys[0];
+		expect(listed.ip).toBe("5.6.7.8");
+		expect(listed.place).toEqual({ country: "GR", region: "Attica", city: "Athens", network: "Cosmote" });
+		for (const g of [(await street()).body.guys[0], (await call("GET", "/api/guys/1")).body.guy, (await call("GET", "/api/guys?ids=1")).body.guys[0]]) {
+			expect(Object.keys(g).sort()).toEqual(["by", "createdAt", "id", "note", "pixels", "source"]);
+		}
+	});
+
+	test("forgets IPs after 30 days, but keeps the location", async () => {
+		await call("POST", "/api/guys", { pixels: guys[0] }, { "cf-connecting-ip": "5.6.7.8" }, athens);
+		await forgetOldIps(env.DB, Date.now() + LIMITS.keepIpMs - 60_000);
+		expect((await admin("GET", "/api/admin/guys")).body.guys[0].ip).toBe("5.6.7.8");
+		await forgetOldIps(env.DB, Date.now() + LIMITS.keepIpMs + 60_000);
+		const listed = (await admin("GET", "/api/admin/guys")).body.guys[0];
+		expect(listed.ip).toBeNull();
+		expect(listed.place.city).toBe("Athens");
+	});
+
+	test("posting still works without location", async () => {
+		const res = await post(guys[0]!);
+		expect(res.status).toBe(201);
+		expect((await admin("GET", "/api/admin/guys")).body.guys[0].place).toEqual({ country: null, region: null, city: null, network: null });
 	});
 });

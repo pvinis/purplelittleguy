@@ -3,13 +3,24 @@ import { type Host, particle, reduceMotion } from "./guy";
 import { footGap, spriteCanvas } from "./sprite";
 
 // Everyone on the street besides the big guy: visitors' guys and the founding friends.
-export type Resident = { key: string; pixels: string; id?: number; createdAt?: number; mine?: boolean; friend?: boolean; focus?: boolean };
+export type Resident = {
+	key: string;
+	pixels: string;
+	id?: number;
+	createdAt?: number;
+	note?: string | null;
+	by?: string | null;
+	mine?: boolean;
+	friend?: boolean;
+	focus?: boolean;
+};
 
 type Walker = {
 	r: Resident;
 	el: HTMLDivElement;
 	cv: HTMLCanvasElement;
 	tag: HTMLSpanElement;
+	tagWidth: number;
 	gap: number;
 	bottom: number;
 	x: number;
@@ -28,10 +39,11 @@ type Walker = {
 const SPRITE = 48;
 const pick = <T>(a: T[]): T => a[Math.floor(Math.random() * a.length)]!;
 
+// What his tag says when you tap him: the note on top, then who made him and when.
 export function describe(r: Resident): string {
 	if (r.friend) return "founding friend";
-	const when = r.createdAt ? ` · ${timeAgo(r.createdAt)}` : "";
-	return `${r.mine ? "yours · " : ""}${guyNumber(r.id ?? 0)}${when}`;
+	const about = [r.mine && "yours", r.by && `by ${r.by}`, guyNumber(r.id ?? 0), r.createdAt && timeAgo(r.createdAt)].filter(Boolean).join(" · ");
+	return r.note ? `“${r.note}”\n${about}` : about;
 }
 
 const defaultTag = (r: Resident) => (r.mine ? "yours" : r.focus && r.id ? guyNumber(r.id) : "");
@@ -47,6 +59,10 @@ export class Crowd {
 
 	get count() {
 		return this.walkers.filter((w) => w.state !== "out").length;
+	}
+
+	get friends() {
+		return this.walkers.filter((w) => w.r.friend && w.state !== "out").length;
 	}
 
 	has(key: string) {
@@ -79,6 +95,7 @@ export class Crowd {
 			el,
 			cv,
 			tag,
+			tagWidth: 0,
 			gap: footGap(r.pixels) * (SPRITE / 12),
 			bottom,
 			x: how === "enter" ? (fromLeft ? -SPRITE - 4 : W + 4) : (at ?? 4 + Math.random() * Math.max(0, W - SPRITE - 8)),
@@ -95,7 +112,7 @@ export class Crowd {
 		this.setTag(w, defaultTag(r));
 		el.addEventListener("pointerdown", (e) => {
 			e.stopPropagation();
-			this.showInfo(w, describe(w.r), 4000);
+			this.showInfo(w, describe(w.r), w.r.note ? 6000 : 4000);
 			this.host.visit({ centerX: () => w.x + SPRITE / 2, gone: () => !this.walkers.includes(w), text: ["hi!", "hello there", "oh, hi!", "nice to see you"] });
 		});
 		this.walkers.push(w);
@@ -115,6 +132,8 @@ export class Crowd {
 	setTag(w: Walker, text: string) {
 		w.tag.textContent = text;
 		w.tag.hidden = !text;
+		w.tagWidth = text ? w.tag.offsetWidth : 0;
+		w.tag.style.removeProperty("--shift");
 	}
 
 	showInfo(w: Walker, text: string, ms: number) {
@@ -192,6 +211,13 @@ export class Crowd {
 			if (w.infoUntil && now > w.infoUntil) {
 				w.infoUntil = 0;
 				this.setTag(w, defaultTag(w.r));
+			}
+
+			// keep a wide tag on screen when he's near an edge
+			if (w.tagWidth > SPRITE) {
+				const left = w.x + SPRITE / 2 - w.tagWidth / 2;
+				const shift = Math.min(Math.max(left, 6), W - w.tagWidth - 6) - left;
+				w.tag.style.setProperty("--shift", `${Math.round(shift)}px`);
 			}
 
 			const bob = !moving || reduceMotion ? 0 : -Math.abs(Math.sin(w.phase)) * 3;

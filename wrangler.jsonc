@@ -19,6 +19,8 @@
     }
   ],
   "observability": { "enabled": true },
+  // Once a day: forget the raw IPs of guys older than 30 days.
+  "triggers": { "crons": ["17 4 * * *"] },
   // Deploying attaches the domain and creates its DNS record and certificate.
   "routes": [{ "pattern": "purplelittleguy.com", "custom_domain": true }]
 }

@@ -1,6 +1,7 @@
 import { generateGuy } from "../shared/generate";
+import { TEXT_MAX } from "../shared/note";
 import { COLORS, type Cell, MIN_FILLED, SIZE, emptyPixels, filledCount } from "../shared/pixels";
-import { ApiError, type Guy, guyNumber } from "./api";
+import { ApiError, type Guy, type Words, guyNumber } from "./api";
 
 // The "Leave a guy" sheet: a 12×12 grid, a purple-only palette, and a Randomize button
 // for anyone who'd rather not draw.
@@ -14,6 +15,9 @@ const PALETTE: [Cell, string][] = [
 ];
 
 type Source = "drawn" | "random";
+
+// Who you said you are, so you don't have to type it again next time.
+const BY_KEY = "plg:by";
 
 export class Editor {
 	private cells: Cell[] = [...emptyPixels()] as Cell[];
@@ -29,8 +33,20 @@ export class Editor {
 
 	constructor(
 		private sheet: HTMLElement,
-		private submit: (pixels: string, source: Source) => Promise<Guy>,
+		private submit: (pixels: string, source: Source, words: Words) => Promise<Guy>,
 	) {
+		this.$<HTMLInputElement>("#note").maxLength = TEXT_MAX.note;
+		const by = this.$<HTMLInputElement>("#by");
+		by.maxLength = TEXT_MAX.by;
+		try {
+			by.value = localStorage.getItem(BY_KEY) ?? "";
+		} catch {}
+		for (const input of [this.$("#note"), by]) {
+			input.addEventListener("keydown", (e) => {
+				if (e.key === "Enter") void this.add();
+			});
+		}
+
 		const pix = this.$("#pix");
 		for (let i = 0; i < SIZE * SIZE; i++) {
 			const c = document.createElement("div");
@@ -175,12 +191,19 @@ export class Editor {
 		if (this.busy) return;
 		const pixels = this.pixels;
 		if (filledCount(pixels) < MIN_FILLED) return this.message(`Your guy needs at least ${MIN_FILLED} squares.`);
+		const note = this.$<HTMLInputElement>("#note");
+		const by = this.$<HTMLInputElement>("#by").value.trim();
 		const button = this.$<HTMLButtonElement>('[data-a="add"]');
 		this.busy = true;
 		button.disabled = true;
 		button.textContent = "Moving in…";
 		try {
-			this.showDone(await this.submit(pixels, this.source));
+			const guy = await this.submit(pixels, this.source, { note: note.value, by });
+			note.value = "";
+			try {
+				localStorage.setItem(BY_KEY, by);
+			} catch {}
+			this.showDone(guy);
 		} catch (err) {
 			const duplicate = err instanceof ApiError && err.code === "duplicate";
 			if (duplicate && this.source === "random") {

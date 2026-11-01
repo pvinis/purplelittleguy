@@ -183,13 +183,16 @@ button:focus-visible, a:focus-visible, .host:focus-visible, input:focus-visible 
 	position: absolute;
 	bottom: calc(100% + 4px);
 	left: 50%;
-	transform: translateX(-50%);
+	transform: translateX(calc(-50% + var(--shift, 0px)));
+	width: max-content;
+	max-width: 220px;
 	font: 11px var(--f-mono);
+	text-align: center;
+	white-space: pre-line;
 	background: var(--accent);
 	color: var(--on-accent);
 	padding: 1px 8px;
-	border-radius: 999px;
-	white-space: nowrap;
+	border-radius: 10px;
 }
 
 /* the leave-a-guy sheet */
@@ -215,7 +218,7 @@ button:focus-visible, a:focus-visible, .host:focus-visible, input:focus-visible 
 .hint { margin: 0; font-size: 14px; color: var(--muted); }
 .pix {
 	/* shrinks on short screens so the Add button always fits */
-	width: min(100%, max(156px, calc(100dvh - 440px)));
+	width: min(100%, max(156px, calc(100dvh - 540px)));
 	justify-self: center;
 	aspect-ratio: 1;
 	display: grid;
@@ -235,6 +238,11 @@ button:focus-visible, a:focus-visible, .host:focus-visible, input:focus-visible 
 .sw.eraser { background: linear-gradient(135deg, transparent 45%, var(--muted) 45% 55%, transparent 55%), var(--cell); }
 .row { display: flex; flex-wrap: wrap; gap: 6px; }
 .msg { margin: 0; min-height: 1.4em; font-size: 14px; color: var(--accent); }
+.words { display: grid; gap: 6px; }
+/* 16px, so phones don't zoom in when you tap a field */
+.words input { min-width: 0; font: 16px var(--f-body); padding: 7px 12px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--fg); user-select: text; }
+.words input::placeholder { color: var(--muted); }
+.fine { margin: 0; font-size: 12px; color: var(--muted); }
 .link-row { display: flex; gap: 6px; }
 .link-row input { flex: 1; min-width: 0; font: 13px var(--f-mono); padding: 6px 10px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--fg); user-select: text; }
 
@@ -258,7 +266,7 @@ button:focus-visible, a:focus-visible, .host:focus-visible, input:focus-visible 
 	.host { width: 96px; }
 	.leave { top: auto; bottom: calc(166px + env(safe-area-inset-bottom)); right: 16px; }
 	.sheet { top: auto; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); width: auto; max-height: calc(100% - 24px); }
-	.pix { width: min(100%, 300px, max(156px, calc(100dvh - 440px))); }
+	.pix { width: min(100%, 300px, max(156px, calc(100dvh - 540px))); }
 	.toast { bottom: calc(220px + env(safe-area-inset-bottom)); }
 }
 

@@ -1,7 +1,19 @@
 import { guyNumber, timeAgo } from "./api";
 import { spriteCanvas } from "./sprite";
 
-type AdminGuy = { id: number; pixels: string; createdAt: number; source: string; status: "visible" | "pending" | "hidden"; poster: string };
+type Place = { country: string | null; region: string | null; city: string | null; network: string | null };
+type AdminGuy = {
+	id: number;
+	pixels: string;
+	createdAt: number;
+	source: string;
+	status: "visible" | "pending" | "hidden";
+	poster: string;
+	note: string | null;
+	by: string | null;
+	ip: string | null;
+	place: Place;
+};
 type Settings = { postingOff: boolean; approvalRequired: boolean; visibleCount: number };
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
@@ -37,9 +49,18 @@ function card(g: AdminGuy): HTMLLIElement {
 	const li = document.createElement("li");
 	li.dataset.status = g.status;
 	li.append(spriteCanvas(g.pixels));
-	const meta = document.createElement("span");
-	meta.className = "meta";
-	meta.textContent = `${guyNumber(g.id)} · ${g.status} · ${g.source} · ${timeAgo(g.createdAt)} · poster ${g.poster.slice(0, 6)}`;
+	const line = (className: string, text: string) => {
+		const p = document.createElement("p");
+		p.className = className;
+		p.textContent = text;
+		li.append(p);
+	};
+	line("meta", `${guyNumber(g.id)} · ${g.status} · ${g.source} · ${timeAgo(g.createdAt)}`);
+	if (g.note || g.by) line("words", [g.note && `“${g.note}”`, g.by && `by ${g.by}`].filter(Boolean).join(" "));
+	const { city, region, country, network } = g.place;
+	const where = [...new Set([city, region, country].filter(Boolean))].join(", ");
+	if (where || network) line("meta", [where, network].filter(Boolean).join(" · "));
+	line("meta", [g.ip, `poster ${g.poster.slice(0, 6)}`].filter(Boolean).join(" · "));
 	const row = document.createElement("div");
 	row.className = "row";
 	const button = (label: string, run: () => Promise<unknown>) => {
@@ -52,8 +73,9 @@ function card(g: AdminGuy): HTMLLIElement {
 	};
 	if (g.status !== "hidden") button("Hide", () => call(`/api/admin/guys/${g.id}`, { status: "hidden" }));
 	if (g.status !== "visible") button(g.status === "pending" ? "Approve" : "Show", () => call(`/api/admin/guys/${g.id}`, { status: "visible" }));
+	if (g.note || g.by) button("Remove note", () => call(`/api/admin/guys/${g.id}`, { clearText: true }));
 	button("Hide all by poster", () => call(`/api/admin/posters/${g.poster}`, {}));
-	li.append(meta, row);
+	li.append(row);
 	return li;
 }
 

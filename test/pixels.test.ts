@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { canonical, checkPixels, emptyPixels, filledCount, isConnected, lowestRow, mirror } from "../src/shared/pixels";
-import { FOUNDING_FRIENDS } from "../src/shared/templates";
+import { FOUNDING_FRIENDS, STREET_MINIMUM, foundingWanted } from "../src/shared/templates";
 
 const one = (i: number, c = "p") => {
 	const a = [...emptyPixels()];
@@ -9,8 +9,18 @@ const one = (i: number, c = "p") => {
 };
 
 describe("pixels", () => {
-	test("founding friends are valid guys", () => {
+	test("founding friends are valid guys, all different", () => {
 		for (const f of FOUNDING_FRIENDS) expect(checkPixels(f).ok).toBe(true);
+		expect(new Set(FOUNDING_FRIENDS.map(canonical)).size).toBe(FOUNDING_FRIENDS.length);
+	});
+
+	test("founding friends make way as visitors move in", () => {
+		expect(FOUNDING_FRIENDS.length).toBeGreaterThanOrEqual(STREET_MINIMUM);
+		expect(foundingWanted(0)).toBe(10);
+		expect(foundingWanted(1)).toBe(9);
+		expect(foundingWanted(7)).toBe(3);
+		expect(foundingWanted(10)).toBe(0);
+		expect(foundingWanted(500)).toBe(0);
 	});
 
 	test("rejects the wrong length or unknown colors", () => {
