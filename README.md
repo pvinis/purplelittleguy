@@ -1,5 +1,10 @@
 # purple little guy
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/street-dark.png">
+  <img alt="The big purple guy on his street, saying hi, with visitors' little pixel guys walking around him" src="docs/street-light.png">
+</picture>
+
 A little purple guy lives at [purplelittleguy.com](https://purplelittleguy.com). He follows your cursor, trips sometimes, naps when you leave him alone, and says hi to the neighbors: tiny 12×12 pixel guys that visitors draw (or randomize) and leave on his street, with an optional note and who made them.
 
 ## How it works
