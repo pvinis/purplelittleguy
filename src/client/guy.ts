@@ -241,7 +241,7 @@ export class Host {
 	private trip(now: number) {
 		this.lastTrip = now;
 		this.setMode("trip", 1250);
-		this.say(pick(["oof", "whoops", "i meant to do that"]), 1300);
+		this.say(pick(["oof", "whoops", "oops i fell"]), 1300);
 		for (let i = 0; i < 4; i++) {
 			particle(this.stage, "dust", "", this.x + this.width / 2 + this.face * (34 + i * 6), this.bottom - 2, this.face * (6 + i * 5), i * 40);
 		}
