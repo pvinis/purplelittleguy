@@ -11,7 +11,7 @@ A little purple guy lives at [purplelittleguy.com](https://purplelittleguy.com).
 
 ### What the street shows
 
-The street shows about one guy per 52px of screen width, up to 24: your own guys first (their ids are kept in the browser), the newest few dropping in again with a welcome, then random older ones. There are always at least 10: until 10 visitors' guys live there, founding friends (hand-drawn, in `src/shared/templates.ts`) fill the gap, and one walks off each time a new guy moves in. Hide some guys and they come back. The Worker builds that selection about once a minute and keeps a running count, so a visit never scans the whole table. Every 45 seconds the page asks for guys newer than the last one it saw, but only while the tab is visible, and every 20 seconds someone walks off and someone else walks on.
+The street shows about one guy per 52px of screen width, up to 24: your own guys first (their ids are kept in the browser), the newest few dropping in again with a welcome, then random older ones. Only visitors' guys live there, so the street starts out empty and fills up as people leave guys. The Worker builds that selection about once a minute and keeps a running count, so a visit never scans the whole table. Every 45 seconds the page asks for guys newer than the last one it saw, but only while the tab is visible, and every 20 seconds someone walks off and someone else walks on.
 
 ### Sharing
 

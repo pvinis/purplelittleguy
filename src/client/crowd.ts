@@ -2,7 +2,7 @@ import { guyNumber, timeAgo } from "./api";
 import { type Host, particle, reduceMotion } from "./guy";
 import { footGap, spriteCanvas } from "./sprite";
 
-// Everyone on the street besides the big guy: visitors' guys and the founding friends.
+// Everyone on the street besides the big guy: the guys visitors left.
 export type Resident = {
 	key: string;
 	pixels: string;
@@ -11,7 +11,6 @@ export type Resident = {
 	note?: string | null;
 	by?: string | null;
 	mine?: boolean;
-	friend?: boolean;
 	focus?: boolean;
 };
 
@@ -41,7 +40,6 @@ const pick = <T>(a: T[]): T => a[Math.floor(Math.random() * a.length)]!;
 
 // What his tag says when you tap him: the note on top, then who made him and when.
 export function describe(r: Resident): string {
-	if (r.friend) return "founding friend";
 	const about = [r.mine && "yours", r.by && `by ${r.by}`, guyNumber(r.id ?? 0), r.createdAt && timeAgo(r.createdAt)].filter(Boolean).join(" · ");
 	return r.note ? `“${r.note}”\n${about}` : about;
 }
@@ -59,10 +57,6 @@ export class Crowd {
 
 	get count() {
 		return this.walkers.filter((w) => w.state !== "out").length;
-	}
-
-	get friends() {
-		return this.walkers.filter((w) => w.r.friend && w.state !== "out").length;
 	}
 
 	has(key: string) {
@@ -144,8 +138,7 @@ export class Crowd {
 	// Someone walks off the street to make room. Never yours, never the one you came to see.
 	sendOneAway(): boolean {
 		const candidates = this.walkers.filter((w) => w.state === "here" && !w.r.mine && !w.r.focus);
-		const friends = candidates.filter((w) => w.r.friend);
-		const w = pick(friends.length ? friends : candidates);
+		const w = pick(candidates);
 		if (!w) return false;
 		w.state = "out";
 		w.dir = w.x < this.stage.clientWidth / 2 ? -1 : 1;

@@ -1,4 +1,3 @@
-import { FOUNDING_FRIENDS, foundingWanted } from "../shared/templates";
 import { type Guy, api, guyNumber, mine, timeAgo } from "./api";
 import { Crowd, type Resident, describe } from "./crowd";
 import { Editor } from "./editor";
@@ -15,7 +14,6 @@ const crowd = new Crowd(stage, host);
 const pool = new Map<string, Resident>();
 let maxId = 0;
 let total = 0;
-let streetUp = false;
 
 const capacity = () => Math.max(6, Math.min(24, Math.floor(stage.clientWidth / 52)));
 const resident = (g: Guy, extra: Partial<Resident> = {}): Resident => ({
@@ -27,8 +25,6 @@ const resident = (g: Guy, extra: Partial<Resident> = {}): Resident => ({
 	by: g.by,
 	...extra,
 });
-// Founding friends make way as visitors move in. If the street can't be reached, they all stay.
-const foundersWanted = () => (streetUp ? foundingWanted(total) : FOUNDING_FRIENDS.length);
 
 function setPopulation() {
 	$("#pop").textContent = total === 1 ? "1 guy lives here" : `${total.toLocaleString("en-US")} guys live here`;
@@ -43,10 +39,10 @@ function toast(text: string, ms = 5000) {
 	toastTimer = window.setTimeout(() => (el.hidden = true), ms);
 }
 
-// A new guy arrives: make room (a founding friend leaves first), drop him in, and send the big guy over.
+// A new guy arrives: make room if the street is full, drop him in, and send the big guy over.
 function arrive(r: Resident, greeting = ["welcome!", "hi new guy!", "oh! a new guy", "welcome to the street"]) {
 	pool.set(r.key, r);
-	if (crowd.count >= capacity() || crowd.friends > foundersWanted()) crowd.sendOneAway();
+	if (crowd.count >= capacity()) crowd.sendOneAway();
 	const w = crowd.add(r, "drop", 40 + Math.random() * Math.max(0, stage.clientWidth - 128));
 	crowd.greetWhenLanded(w, greeting);
 	return w;
@@ -73,14 +69,13 @@ async function start() {
 	]);
 
 	if (street) {
-		streetUp = true;
 		maxId = street.maxId;
 		total = street.total;
 		setPopulation();
 		for (const g of street.guys) pool.set(`g${g.id}`, resident(g));
 	} else {
 		$("#pop").textContent = "the street is quiet right now";
-		toast("Can't reach the street right now. The founding friends are holding the fort.");
+		toast("Can't reach the street right now. The big guy is holding the fort.");
 	}
 	const mineIds = new Set(mineGuys.map((g) => g.id));
 	for (const g of mineGuys) pool.set(`g${g.id}`, resident(g, { mine: true }));
@@ -101,13 +96,6 @@ async function start() {
 
 	const others = shuffle([...pool.values()].filter((r) => !placed.has(r.key) && r.id !== focusId));
 	for (const r of others.slice(0, Math.max(0, cap - placed.size - (focus ? 1 : 0)))) place(r);
-
-	// until enough people have moved in, a few founding friends fill the street
-	let founders = foundersWanted();
-	for (const i of shuffle(FOUNDING_FRIENDS.map((_, i) => i))) {
-		if (founders-- <= 0 || placed.size + (focus ? 1 : 0) >= cap) break;
-		place({ key: `f${i}`, pixels: FOUNDING_FRIENDS[i]!, friend: true });
-	}
 
 	if (focus) {
 		const r = resident(focus, { focus: true, mine: mineIds.has(focus.id) });

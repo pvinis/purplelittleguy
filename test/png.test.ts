@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { inflateSync } from "node:zlib";
 import { CARD, renderCard } from "../src/worker/png";
-import { FOUNDING_FRIENDS } from "../src/shared/templates";
+import { HAND_DRAWN } from "../src/shared/templates";
 
 function decode(png: Uint8Array) {
 	const view = new DataView(png.buffer, png.byteOffset);
@@ -26,7 +26,7 @@ function decode(png: Uint8Array) {
 
 describe("share card", () => {
 	test("is a 1200×630 PNG with the guy standing on the street", async () => {
-		const png = await renderCard(FOUNDING_FRIENDS[0]!);
+		const png = await renderCard(HAND_DRAWN[0]!);
 		expect([...png.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 		const img = decode(png);
 		expect(img.width).toBe(CARD.width);

@@ -1,5 +1,5 @@
 import { type Cell, SIZE, filledCount, isConnected, lowestRow, mirror } from "./pixels";
-import { FOUNDING_FRIENDS } from "./templates";
+import { HAND_DRAWN } from "./templates";
 
 // Random guys are built from parts (body, eyes, mouth, legs, one optional extra),
 // drawn on the left half and mirrored, so they read as characters instead of noise.
@@ -224,5 +224,5 @@ export function generateDetailed(seed: number): GeneratedGuy | null {
 }
 
 export function generateGuy(seed: number = Math.floor(Math.random() * 2 ** 31)): string {
-	return generateDetailed(seed)?.pixels ?? FOUNDING_FRIENDS[Math.abs(seed) % FOUNDING_FRIENDS.length]!;
+	return generateDetailed(seed)?.pixels ?? HAND_DRAWN[Math.abs(seed) % HAND_DRAWN.length]!;
 }

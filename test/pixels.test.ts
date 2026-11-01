@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { canonical, checkPixels, emptyPixels, filledCount, isConnected, lowestRow, mirror } from "../src/shared/pixels";
-import { FOUNDING_FRIENDS, STREET_MINIMUM, foundingWanted } from "../src/shared/templates";
+import { HAND_DRAWN } from "../src/shared/templates";
 
 const one = (i: number, c = "p") => {
 	const a = [...emptyPixels()];
@@ -9,18 +9,9 @@ const one = (i: number, c = "p") => {
 };
 
 describe("pixels", () => {
-	test("founding friends are valid guys, all different", () => {
-		for (const f of FOUNDING_FRIENDS) expect(checkPixels(f).ok).toBe(true);
-		expect(new Set(FOUNDING_FRIENDS.map(canonical)).size).toBe(FOUNDING_FRIENDS.length);
-	});
-
-	test("founding friends make way as visitors move in", () => {
-		expect(FOUNDING_FRIENDS.length).toBeGreaterThanOrEqual(STREET_MINIMUM);
-		expect(foundingWanted(0)).toBe(10);
-		expect(foundingWanted(1)).toBe(9);
-		expect(foundingWanted(7)).toBe(3);
-		expect(foundingWanted(10)).toBe(0);
-		expect(foundingWanted(500)).toBe(0);
+	test("the hand-drawn guys are valid, all different", () => {
+		for (const f of HAND_DRAWN) expect(checkPixels(f).ok).toBe(true);
+		expect(new Set(HAND_DRAWN.map(canonical)).size).toBe(HAND_DRAWN.length);
 	});
 
 	test("rejects the wrong length or unknown colors", () => {
@@ -36,15 +27,15 @@ describe("pixels", () => {
 
 	test("mirror flips each row, and a guy and his mirror share a canonical form", () => {
 		expect(mirror(one(0))).toBe(one(11));
-		expect(mirror(mirror(FOUNDING_FRIENDS[1]!))).toBe(FOUNDING_FRIENDS[1]!);
+		expect(mirror(mirror(HAND_DRAWN[1]!))).toBe(HAND_DRAWN[1]!);
 		expect(canonical(one(0))).toBe(canonical(one(11)));
 	});
 
 	test("counts, finds the feet, and checks connectedness", () => {
-		expect(filledCount(FOUNDING_FRIENDS[0]!)).toBe(68);
-		expect(lowestRow(FOUNDING_FRIENDS[0]!)).toBe(10);
+		expect(filledCount(HAND_DRAWN[0]!)).toBe(68);
+		expect(lowestRow(HAND_DRAWN[0]!)).toBe(10);
 		expect(lowestRow(emptyPixels())).toBe(-1);
-		expect(isConnected(FOUNDING_FRIENDS[0]!)).toBe(true);
+		expect(isConnected(HAND_DRAWN[0]!)).toBe(true);
 		const two = [...one(0)];
 		two[2] = "p";
 		expect(isConnected(two.join(""))).toBe(false);
