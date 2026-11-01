@@ -7,6 +7,7 @@ A little purple guy lives at [purplelittleguy.com](https://purplelittleguy.com).
 - **The page** is plain TypeScript, bundled with `bun build` into `public/assets`. No framework.
 - **The Worker** (`src/worker`) serves the page from [Workers static assets](https://developers.cloudflare.com/workers/static-assets/) and a small JSON API. Guys live in [D1](https://developers.cloudflare.com/d1/) (SQLite).
 - **A guy** is a 144-character string, 12 rows of 12 squares, over the alphabet `.lpdk` (empty, lilac, purple, deep purple, ink).
+- **Light and dark** follow the system setting. With [Dark Reader](https://darkreader.org) on, the page switches to its own dark theme and adds a `darkreader-lock` tag, so Dark Reader takes its styles back off instead of repainting the page (`src/client/theme.ts`).
 - **Randomize** (`src/shared/generate.ts`) builds guys from parts (a body shape, eyes, a mouth, legs, at most one extra like a hat or antenna) on the left half and mirrors them. Every random guy has to pass the rules in `isGoodGuy`, and the tests check 10,000 seeds.
 
 ### What the street shows

@@ -24,30 +24,29 @@
 	--f-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 	color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-	:root {
-		--bg: #15111c;
-		--sky: #19141f;
-		--paper: #1e1828;
-		--cell: #2a2335;
-		--fg: #eee8f7;
-		--muted: #a79fb5;
-		--line: #352b42;
-		--accent: #b492ff;
-		--on-accent: #15111c;
-		--accent-soft: #2e2344;
-		--ground: #2c2439;
-		--house: #221b2c;
-		--window: #3a3049;
-		--cloud: #241d2e;
-		--bubble: #2b2238;
-		--heart: #ff7ab0;
-		--shadow: rgba(0, 0, 0, 0.45);
-		/* a thin light outline, so ink and deep purple squares don't vanish into the night */
-		--sprite-filter: drop-shadow(1px 0 0 rgba(238, 232, 247, 0.5)) drop-shadow(-1px 0 0 rgba(238, 232, 247, 0.5))
-			drop-shadow(0 1px 0 rgba(238, 232, 247, 0.5)) drop-shadow(0 -1px 0 rgba(238, 232, 247, 0.5));
-		color-scheme: dark;
-	}
+/* dark when the system is, or when Dark Reader is on (see src/client/theme.ts) */
+:root[data-theme="dark"] {
+	--bg: #15111c;
+	--sky: #19141f;
+	--paper: #1e1828;
+	--cell: #2a2335;
+	--fg: #eee8f7;
+	--muted: #a79fb5;
+	--line: #352b42;
+	--accent: #b492ff;
+	--on-accent: #15111c;
+	--accent-soft: #2e2344;
+	--ground: #2c2439;
+	--house: #221b2c;
+	--window: #3a3049;
+	--cloud: #241d2e;
+	--bubble: #2b2238;
+	--heart: #ff7ab0;
+	--shadow: rgba(0, 0, 0, 0.45);
+	/* a thin light outline, so ink and deep purple squares don't vanish into the night */
+	--sprite-filter: drop-shadow(1px 0 0 rgba(238, 232, 247, 0.5)) drop-shadow(-1px 0 0 rgba(238, 232, 247, 0.5))
+		drop-shadow(0 1px 0 rgba(238, 232, 247, 0.5)) drop-shadow(0 -1px 0 rgba(238, 232, 247, 0.5));
+	color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
