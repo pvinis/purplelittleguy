@@ -70,6 +70,8 @@ export function particle(stage: HTMLElement, cls: string, text: string, x: numbe
 
 // Someone the big guy can walk over to: anything with a current center x.
 export type Visit = { centerX: () => number; gone: () => boolean; text: string[]; onArrive?: () => void };
+// A stretch of street, left to right, in pixels.
+export type Span = [number, number];
 
 export class Host {
 	readonly el: HTMLDivElement;
@@ -87,6 +89,7 @@ export class Host {
 	private shown = "";
 	private visits: Visit[] = [];
 	private visitStart = 0;
+	private clear: (() => Span | null) | null = null;
 	private bubbleTimer = 0;
 	private readonly sleepAfter = touchOnly ? 15_000 : 5_000;
 
@@ -151,10 +154,26 @@ export class Host {
 		if (this.bubble.hidden) this.say(text, ms);
 	}
 
+	// The bubble sits centered over him, unless it would run off screen, or he's next to a label
+	// he's keeping clear of: then it grows away from the label, if there's room that way.
 	private placeBubble() {
 		const W = this.stage.clientWidth;
-		this.bubble.classList.toggle("al", this.x < 70);
-		this.bubble.classList.toggle("ar", this.x >= 70 && this.x > W - this.width - 70);
+		const bw = this.bubble.offsetWidth;
+		const growsLeft = this.x + this.width - bw >= 4;
+		const growsRight = this.x + bw <= W - 4;
+		let al = false;
+		let ar = false;
+		const span = this.clear?.();
+		if (span) {
+			if (this.centerX < (span[0] + span[1]) / 2) ar = growsLeft;
+			else al = growsRight;
+		}
+		if (!al && !ar && (this.centerX - bw / 2 < 4 || this.centerX + bw / 2 > W - 4)) {
+			al = this.centerX < W / 2;
+			ar = !al;
+		}
+		this.bubble.classList.toggle("al", al);
+		this.bubble.classList.toggle("ar", ar);
 	}
 
 	private wake() {
@@ -190,6 +209,24 @@ export class Host {
 		this.wake();
 	}
 
+	// Stay out of this stretch of street (like a little guy's label) until it returns null.
+	keepClear(span: () => Span | null) {
+		this.clear = span;
+	}
+
+	// Where to stand instead of x so he doesn't cover the span: on whichever side of it he's on now.
+	private clearOf(x: number, [l, r]: Span) {
+		const pad = 10;
+		if (x + this.width <= l - pad || x >= r + pad) return x;
+		const left = this.clamp(l - pad - this.width);
+		const right = this.clamp(r + pad);
+		const leftFits = left + this.width <= l - pad + 1;
+		const rightFits = right >= r + pad - 1;
+		const preferLeft = this.centerX < (l + r) / 2;
+		if (leftFits && (preferLeft || !rightFits)) return left;
+		return rightFits ? right : x;
+	}
+
 	tick(now: number, dt: number) {
 		const visit = this.visits[0];
 		if (visit && (visit.gone() || now - this.visitStart > 6000)) {
@@ -206,6 +243,9 @@ export class Host {
 			this.last = now;
 		}
 		this.target = this.clamp(this.target);
+		const span = this.clear?.() ?? null;
+		if (span) this.target = this.clearOf(this.target, span);
+		else this.clear = null;
 		if (this.until && now > this.until) this.setMode("idle");
 
 		if (this.mode === "idle" || this.mode === "walk") {

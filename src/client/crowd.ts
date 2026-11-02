@@ -1,5 +1,5 @@
 import { guyNumber, timeAgo } from "./api";
-import { type Host, particle, reduceMotion } from "./guy";
+import { type Host, type Span, particle, reduceMotion } from "./guy";
 import { footGap, spriteCanvas } from "./sprite";
 
 // Everyone on the street besides the big guy: the guys visitors left.
@@ -20,6 +20,7 @@ type Walker = {
 	cv: HTMLCanvasElement;
 	tag: HTMLSpanElement;
 	tagWidth: number;
+	tagShift: number;
 	gap: number;
 	bottom: number;
 	x: number;
@@ -90,6 +91,7 @@ export class Crowd {
 			cv,
 			tag,
 			tagWidth: 0,
+			tagShift: 0,
 			gap: footGap(r.pixels) * (SPRITE / 12),
 			bottom,
 			x: how === "enter" ? (fromLeft ? -SPRITE - 4 : W + 4) : (at ?? 4 + Math.random() * Math.max(0, W - SPRITE - 8)),
@@ -106,8 +108,12 @@ export class Crowd {
 		this.setTag(w, defaultTag(r));
 		el.addEventListener("pointerdown", (e) => {
 			e.stopPropagation();
-			this.showInfo(w, describe(w.r), w.r.note ? 6000 : 4000);
+			const ms = w.r.note ? 9000 : 7000;
+			this.showInfo(w, describe(w.r), ms);
+			if (w.state === "here") w.pause = Math.max(w.pause, ms / 1000); // he stands still while you read
 			this.host.visit({ centerX: () => w.x + SPRITE / 2, gone: () => !this.walkers.includes(w), text: ["hi!", "hello there", "oh, hi!", "nice to see you"] });
+			// the big guy says hi from beside the label, not in front of it, and stays clear until it's gone
+			this.host.keepClear(() => (w.infoUntil && this.walkers.includes(w) ? this.span(w) : null));
 		});
 		this.walkers.push(w);
 		return w;
@@ -123,11 +129,19 @@ export class Crowd {
 		this.host.visit({ centerX: () => w.x + SPRITE / 2, gone: () => !this.walkers.includes(w) || w.state === "out", text });
 	}
 
+	// The stretch of street a walker and his label take up.
+	private span(w: Walker): Span {
+		const center = w.x + SPRITE / 2 + w.tagShift;
+		const half = Math.max(w.tagWidth, SPRITE) / 2;
+		return [Math.min(w.x, center - half), Math.max(w.x + SPRITE, center + half)];
+	}
+
 	setTag(w: Walker, text: string) {
 		w.tag.textContent = text;
 		w.tag.hidden = !text;
 		w.tagWidth = text ? w.tag.offsetWidth : 0;
 		w.tag.style.removeProperty("--shift");
+		w.tagShift = 0;
 	}
 
 	showInfo(w: Walker, text: string, ms: number) {
@@ -209,8 +223,8 @@ export class Crowd {
 			// keep a wide tag on screen when he's near an edge
 			if (w.tagWidth > SPRITE) {
 				const left = w.x + SPRITE / 2 - w.tagWidth / 2;
-				const shift = Math.min(Math.max(left, 6), W - w.tagWidth - 6) - left;
-				w.tag.style.setProperty("--shift", `${Math.round(shift)}px`);
+				w.tagShift = Math.round(Math.min(Math.max(left, 6), W - w.tagWidth - 6) - left);
+				w.tag.style.setProperty("--shift", `${w.tagShift}px`);
 			}
 
 			const bob = !moving || reduceMotion ? 0 : -Math.abs(Math.sin(w.phase)) * 3;
