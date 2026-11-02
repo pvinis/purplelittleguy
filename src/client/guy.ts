@@ -1,5 +1,6 @@
 // The big purple guy who lives on the street: an SVG character with a few moods,
-// who follows your cursor, trips, naps, and goes to greet the little guys.
+// who strolls around on his own, naps now and then, and goes to greet the little guys.
+// He keeps to himself: he only talks when you pet him, tap a guy, or someone new moves in.
 
 const INK = "#1E1530";
 const CHEEK = "#FF8FB8";
@@ -54,7 +55,10 @@ const LOOKS: Record<Mode, Look> = {
 
 const pick = <T>(a: T[]): T => a[Math.floor(Math.random() * a.length)]!;
 export const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const touchOnly = matchMedia("(hover: none)").matches;
+
+// How he spends his time when nobody needs him.
+const STROLL = { speed: 55, minStep: 60, maxStep: 260, minRest: 6000, maxRest: 14_000 };
+const NAP = { chance: 0.2, min: 20_000, max: 45_000 };
 
 export function particle(stage: HTMLElement, cls: string, text: string, x: number, bottom: number, dx: number, delay = 0) {
 	const s = document.createElement("span");
@@ -83,7 +87,7 @@ export class Host {
 	private mode: Mode = "idle";
 	private start = 0;
 	private until = 0;
-	private last = performance.now() + 2500;
+	private nextMove = performance.now() + 4000;
 	private lastTrip = performance.now();
 	private lastZ = 0;
 	private shown = "";
@@ -91,7 +95,6 @@ export class Host {
 	private visitStart = 0;
 	private clear: (() => Span | null) | null = null;
 	private bubbleTimer = 0;
-	private readonly sleepAfter = touchOnly ? 15_000 : 5_000;
 
 	constructor(
 		private stage: HTMLElement,
@@ -108,8 +111,6 @@ export class Host {
 		this.bubble = this.el.querySelector(".bubble")!;
 		this.x = this.target = this.clamp((stage.clientWidth - this.width) / 2);
 
-		stage.addEventListener("pointermove", (e) => this.poke(e));
-		stage.addEventListener("pointerdown", (e) => this.poke(e));
 		this.el.addEventListener("pointerdown", (e) => {
 			e.stopPropagation();
 			this.pet();
@@ -150,10 +151,6 @@ export class Host {
 		this.bubbleTimer = window.setTimeout(() => (this.bubble.hidden = true), ms);
 	}
 
-	sayIfQuiet(text: string, ms?: number) {
-		if (this.bubble.hidden) this.say(text, ms);
-	}
-
 	// The bubble sits centered over him, unless it would run off screen, or he's next to a label
 	// he's keeping clear of: then it grows away from the label, if there's room that way.
 	private placeBubble() {
@@ -177,21 +174,24 @@ export class Host {
 	}
 
 	private wake() {
-		if (this.mode !== "sleep") return;
-		this.setMode("idle");
-		this.say(pick(["oh! hi.", "you came back", "hello hello", "*yawn* hi"]), 1500);
+		if (this.mode === "sleep") this.setMode("idle");
 	}
 
-	private poke(e: PointerEvent) {
-		this.last = performance.now();
-		this.wake();
-		if (this.visits.length) return; // busy saying hi to someone
-		const r = this.stage.getBoundingClientRect();
-		this.target = this.clamp(e.clientX - r.left - this.width / 2);
+	// Left alone, he takes a short stroll, or now and then a nap.
+	private wander(now: number) {
+		if (Math.random() < NAP.chance) {
+			const ms = NAP.min + Math.random() * (NAP.max - NAP.min);
+			this.setMode("sleep", ms);
+			this.bubble.hidden = true;
+			this.nextMove = now + ms + 3000;
+			return;
+		}
+		const step = STROLL.minStep + Math.random() * (STROLL.maxStep - STROLL.minStep);
+		this.target = this.clamp(this.x + step * (Math.random() < 0.5 ? -1 : 1));
+		this.nextMove = now + STROLL.minRest + Math.random() * (STROLL.maxRest - STROLL.minRest);
 	}
 
 	private pet() {
-		this.last = performance.now();
 		if (this.mode === "trip") return;
 		this.setMode("pet", 1300);
 		this.say(pick(["hehe", "that tickles", "again?", "i like that", "oh! ♥"]), 1400);
@@ -204,7 +204,6 @@ export class Host {
 	visit(v: Visit) {
 		if (this.visits.length >= 4) return;
 		this.visits.push(v);
-		this.last = performance.now();
 		if (this.visits.length === 1) this.visitStart = performance.now();
 		this.wake();
 	}
@@ -240,7 +239,8 @@ export class Host {
 			const side = this.centerX < cx ? -1 : 1;
 			// near an edge there may be no room on that side, so use the other one
 			this.target = Math.abs(beside(side) + this.width / 2 - cx) >= gap - 1 ? beside(side) : beside(-side);
-			this.last = now;
+		} else if (this.mode === "idle" && now > this.nextMove) {
+			this.wander(now);
 		}
 		this.target = this.clamp(this.target);
 		const span = this.clear?.() ?? null;
@@ -253,8 +253,9 @@ export class Host {
 			if (Math.abs(dx) > 3) {
 				if (this.mode !== "walk") this.setMode("walk");
 				this.face = dx > 0 ? 1 : -1;
-				this.x += this.face * Math.min(Math.abs(dx), (visit ? 230 : 150) * dt);
-				if (!visit && Math.abs(dx) > 60 && now - this.lastTrip > 7000 && Math.random() < dt * 0.25) this.trip(now);
+				this.x += this.face * Math.min(Math.abs(dx), (visit ? 150 : STROLL.speed) * dt);
+				// a rare stumble on a longer stroll
+				if (!visit && Math.abs(dx) > 60 && now - this.lastTrip > 120_000 && Math.random() < dt * 0.02) this.trip(now);
 			} else {
 				if (this.mode === "walk") this.setMode("idle");
 				const v = this.visits[0];
@@ -265,10 +266,6 @@ export class Host {
 					this.say(pick(v.text));
 					v.onArrive?.();
 				}
-			}
-			if (this.mode === "idle" && !this.visits.length && now - this.last > this.sleepAfter) {
-				this.setMode("sleep");
-				this.bubble.hidden = true;
 			}
 		}
 		if (this.mode === "sleep" && now - this.lastZ > 1100) {

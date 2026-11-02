@@ -170,7 +170,6 @@ button:focus-visible, a:focus-visible, .host:focus-visible, input:focus-visible 
 
 .pt { position: absolute; z-index: 250; pointer-events: none; font: 700 24px/1 var(--f-hand); color: var(--accent); animation: rise 1.9s ease-out forwards; }
 .pt.heart { color: var(--heart); font-size: 22px; animation-duration: 1.2s; }
-.pt.hi { color: var(--fg); font-size: 18px; animation-duration: 1.4s; }
 .pt.dust { width: 12px; height: 12px; border-radius: 50%; background: var(--ground); border: 1.5px solid var(--line); animation: puff 0.7s ease-out forwards; }
 @keyframes rise { 0% { opacity: 0; transform: translate(0, 0) scale(0.7); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx, 14px), -64px) scale(1.15); } }
 @keyframes puff { 0% { opacity: 0.9; transform: translate(0, 0) scale(0.6); } 100% { opacity: 0; transform: translate(var(--dx, 10px), -16px) scale(1.5); } }
