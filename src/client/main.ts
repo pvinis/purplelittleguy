@@ -6,7 +6,6 @@ import { drawHouses } from "./houses";
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 const shuffle = <T>(a: T[]) => a.map((v) => ({ v, k: Math.random() })).sort((x, y) => x.k - y.k).map((x) => x.v);
-const touchOnly = matchMedia("(hover: none)").matches;
 
 const stage = $("#street");
 const host = new Host(stage, 24);
@@ -39,12 +38,12 @@ function toast(text: string, ms = 5000) {
 	toastTimer = window.setTimeout(() => (el.hidden = true), ms);
 }
 
-// A new guy arrives: make room if the street is full, drop him in, and send the big guy over.
-function arrive(r: Resident, greeting = ["welcome!", "hi new guy!", "oh! a new guy", "welcome to the street"]) {
+// A guy drops in: make room if the street is full, and for someone new, send the big guy over to say hi.
+function arrive(r: Resident, greeting: string[] | null = ["welcome!", "hi new guy!", "oh! a new guy", "welcome to the street"]) {
 	pool.set(r.key, r);
 	if (crowd.count >= capacity()) crowd.sendOneAway();
 	const w = crowd.add(r, "drop", 40 + Math.random() * Math.max(0, stage.clientWidth - 128));
-	crowd.greetWhenLanded(w, greeting);
+	if (greeting) crowd.greetWhenLanded(w, greeting);
 	return w;
 }
 
@@ -60,7 +59,6 @@ $("#leave").addEventListener("click", () => (editor.isOpen ? editor.close() : ed
 $("#leave").addEventListener("pointerdown", (e) => e.stopPropagation());
 
 async function start() {
-	host.say(touchOnly ? "hi! tap around" : "hi! come say hi", 4000);
 	const focusId = Number(location.pathname.match(/^\/g\/(\d+)/)?.[1]) || 0;
 	const [street, mineGuys, focus] = await Promise.all([
 		api.street().catch(() => null),
@@ -109,7 +107,8 @@ async function start() {
 	}
 	arrivals.forEach((id, i) => {
 		const r = pool.get(`g${id}`);
-		if (r) setTimeout(() => arrive(r), (focus ? 3600 : 2400) + i * 1500);
+		// the newest few drop in again so the street feels alive, but they're not new, so no fuss
+		if (r) setTimeout(() => arrive(r, null), (focus ? 3600 : 2400) + i * 1500);
 	});
 }
 

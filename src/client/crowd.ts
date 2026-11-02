@@ -1,5 +1,5 @@
 import { guyNumber, timeAgo } from "./api";
-import { type Host, type Span, particle, reduceMotion } from "./guy";
+import { type Host, type Span, reduceMotion } from "./guy";
 import { footGap, spriteCanvas } from "./sprite";
 
 // Everyone on the street besides the big guy: the guys visitors left.
@@ -206,13 +206,11 @@ export class Crowd {
 			}
 			if (moving) w.phase += dt * Math.max(w.speed, 30) * 0.28;
 
-			// bumping into the big guy
+			// bumping into the big guy: stop for a moment and look up at him, quietly
 			if (hostUp && w.state === "here" && Math.abs(w.x + SPRITE / 2 - hx) < 34 && now > w.hiCool) {
 				w.hiCool = now + 8000;
 				w.pause = 1.3;
 				w.dir = hx > w.x + SPRITE / 2 ? 1 : -1;
-				particle(this.stage, "hi", pick(["hi", "hey", "hi!", "oh hi"]), w.x + 12, w.bottom + 52, w.dir * 6);
-				if (Math.random() < 0.5) this.host.sayIfQuiet(pick(["hi!", "hey neighbor", "hello!", "oh, hi"]), 1100);
 			}
 
 			if (w.infoUntil && now > w.infoUntil) {
